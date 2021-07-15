@@ -2,7 +2,7 @@
 
 This project is a pub-sub model with a broker. Zooper is used for broker leader election. 
 
-## Please refer to the video below to see all tests 
+## Please refer to the video below to see tests 
 
 
 
@@ -81,5 +81,7 @@ Wait and few seconds and then you will see new broker elected
 
 
 
+## Tests and Graphs
 
+![data](/graph.png)
 
