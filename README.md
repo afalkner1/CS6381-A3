@@ -1,6 +1,20 @@
 # CS6381-A2
 
-This project is a pub-sub model with a broker. Zooper is used for broker leader election. 
+This project is a pub-sub model with a broker. Zookeeper is used for broker leader election. 
+File CS6381.py contains all the Zookeeper and ZeroMQ middleware. 
+
+## How this project works
+
+A broker wins the Zookeeper election and creates and ephemeral znode at the location /broker-election. The publishers then create ephemeral nodes at the location /topic/{topic}/pub/{pub_id}. Subscribes then create ephemeral nodes at the location /topic/{topic}/sub/{sub_id}. They publishers and subscribers then perform regular message sending/recieving. 
+
+There are two approaches to recieve messagess. 
+
+1) Broker
+In this method messages are sent from the publisher, to the broker, who then forwards the messages onto the subscribers 
+
+2) Direct 
+In this method messages are sent directly from the publishers to the subscribers. 
+
 
 ## Please refer to the video below to see tests 
 
@@ -83,5 +97,13 @@ Wait and few seconds and then you will see new broker elected
 
 ## Tests and Graphs
 
-![data](/graph.png)
+Graph to show message times as hosts increased using approach one. 
+![data](/images/broker.png)
+
+Graph to show message times as hosts increased using approach two. 
+![data](/images/direct.png)
+
+Comparing this data 
+![data](/images/both.png)
+
 
