@@ -21,6 +21,7 @@ import os
 
 context = zmq.Context()
 zkserver = "10.0.0.1:2181"
+socket_arr = []
 
 class Broker():
     def __init__(self):
@@ -141,7 +142,7 @@ class Publisher:
 
     def run_pub(self):
         while True:
-            publisher_id = random.randrange(0, 9999)
+            publisher_id = self.publisher_id
             sent_time = time.time()
             msg = f'{publisher_id} {self.topic} {sent_time}'
             self.publish(self.topic, msg)
@@ -188,50 +189,33 @@ class Subscriber():
 
         self.socket.setsockopt_string(zmq.SUBSCRIBE, self.topic)
 
-    # def connect_direct(self):
-    #     @self.zk.DataWatch(self.pub_path)
-    #     def pub_watcher(data, stat):
-    #         if data is not None:
-    #             new_ip = data.decode('utf-8')
-    #             conn_str = f'tcp://{new_ip}:{self.port}'
-    #             print(f"connecting: {conn_str}")
-    #             self.socket.connect(conn_str)
-    #
-    #     self.socket.setsockopt_string(zmq.SUBSCRIBE, self.topic)
-
     def connect_direct(self):
         chilren = self.zk.get_children(self.pub_path, False)
+        count = 0
         for child in chilren:
             print(child)
             new_path = f"/topic/{self.topic}/pub/{child}"
             print(new_path)
+            sk = context.socket(zmq.SUB)
+            socket_arr.append(sk)
             @self.zk.DataWatch(new_path)
             def children_watcher(data, stat):
                 if data is not None:
                     new_ip = data.decode('utf-8')
                     conn_str = f'tcp://{new_ip}:{self.port}'
                     print(f"connecting: {conn_str}")
-                    self.socket.connect(conn_str)
+                    socket_arr[count].connect(conn_str)
 
-            self.socket.setsockopt_string(zmq.SUBSCRIBE, self.topic)
-
-        # # @self.zk.PersistentWatcher(self.pub_path)
-        # @self.zk.ChildrenWatch(self.pub_path)
-        # def children_watcher(data, stat):
-        #     for child in chilren:
-        #         value, stat2 = self.zk.get(child)
-        #         if value is not None:
-        #             new_ip = value.decode('utf-8')
-        #             conn_str = f'tcp://{new_ip}:{self.port}'
-        #             print(f"connecting: {conn_str}")
-        #             self.socket.connect(conn_str)
-        #
-        #
-        # self.socket.setsockopt_string(zmq.SUBSCRIBE, self.topic)
+            socket_arr[count].setsockopt_string(zmq.SUBSCRIBE, self.topic)
+            count = count + 1
 
 
     def listen(self):
         return self.socket.recv_string()
+
+    def listen_d(self, sk):
+        return sk.recv_string()
+
 
     def run_sub(self):
         while True:
@@ -245,6 +229,21 @@ class Subscriber():
             f.write(f"{pub_id} , {sent_time} , {rec_time} \n")
             f.close()
             time.sleep(1)
+
+    def run_sub_direct(self):
+        while True:
+            print(len(socket_arr))
+            for sk in socket_arr:
+                rec_time = time.time()
+                f = open("times.txt", "a")
+                message = self.listen_d(sk)
+                print("Subscriber recieved message: ")
+                print(message)
+                print("\n")
+                # f.write(f"{pub_id} , {sent_time} , {rec_time} \n")
+                f.close()
+                time.sleep(1)
+
 
 
 def get_ip():
