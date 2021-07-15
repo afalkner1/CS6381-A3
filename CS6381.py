@@ -193,9 +193,7 @@ class Subscriber():
         chilren = self.zk.get_children(self.pub_path, False)
         count = 0
         for child in chilren:
-            print(child)
             new_path = f"/topic/{self.topic}/pub/{child}"
-            print(new_path)
             sk = context.socket(zmq.SUB)
             socket_arr.append(sk)
             @self.zk.DataWatch(new_path)
@@ -222,25 +220,25 @@ class Subscriber():
             rec_time = time.time()
             f = open("times.txt", "a")
             message = self.listen()
-            extra, pub_id, topic, sent_time = message.split()
+            extra, extra2, pub_id, topic, sent_time = message.split()
             print("Subscriber recieved message: ")
-            print(pub_id, topic, sent_time)
+            print(extra2, topic, sent_time)
             print("\n")
-            f.write(f"{pub_id} , {sent_time} , {rec_time} \n")
+            f.write(f"{extra2} , {sent_time} , {rec_time} \n")
             f.close()
             time.sleep(1)
 
     def run_sub_direct(self):
         while True:
-            print(len(socket_arr))
             for sk in socket_arr:
                 rec_time = time.time()
                 f = open("times.txt", "a")
                 message = self.listen_d(sk)
+                extra, extra2, pub_id, topic, sent_time = message.split()
                 print("Subscriber recieved message: ")
-                print(message)
+                print(extra2, topic, sent_time)
                 print("\n")
-                # f.write(f"{pub_id} , {sent_time} , {rec_time} \n")
+                f.write(f"{extra2} , {sent_time} , {rec_time} \n")
                 f.close()
                 time.sleep(1)
 

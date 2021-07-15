@@ -8,7 +8,10 @@ import random
 
 topic = sys.argv[1]
 p = Publisher(topic)
-p.connect()
+if (sys.argv[2] == "direct"):
+    p.connect_direct()
+else :
+    p.connect()
 
 while True:
     publisher_id = p.publisher_id
