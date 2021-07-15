@@ -8,7 +8,7 @@ import random
 
 topic = sys.argv[1]
 p = Publisher(topic)
-p.connect()
+p.connect_direct()
 
 while True:
     publisher_id = random.randrange(0, 9999)

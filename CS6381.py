@@ -76,9 +76,12 @@ class Publisher:
         self.ports = config['PORT']
         # unique id to every publisher
         self.id = uuid.uuid4()
+        self.publisher_id = random.randrange(0, 9999)
         self.topic = topic;
-        self.path_b = f"/topic/{topic}"
-        self.path = f"/topic/{topic}/pub"
+        self.path_test = f"/topic"
+        self.path_test2 = f"/topic/{topic}"
+        self.path_b = f"/topic/{topic}/pub"
+        self.path = f"/topic/{topic}/pub/{self.publisher_id}"
         self.broker_path = "/broker"
 
         self.ip = get_ip()
@@ -88,6 +91,12 @@ class Publisher:
 
 
     def connect(self):
+
+        if not self.zk.exists(self.path_test):
+            self.zk.create(self.path_test)
+
+        if not self.zk.exists(self.path_test2):
+            self.zk.create(self.path_test2)
 
         if not self.zk.exists(self.path_b):
             self.zk.create(self.path_b)
@@ -108,6 +117,12 @@ class Publisher:
 
 
     def connect_direct(self):
+
+        if not self.zk.exists(self.path_test):
+            self.zk.create(self.path_test)
+
+        if not self.zk.exists(self.path_test2):
+            self.zk.create(self.path_test2)
 
         if not self.zk.exists(self.path_b):
             self.zk.create(self.path_b)
@@ -142,19 +157,25 @@ class Subscriber():
         self.ports = config['PORT']
         self.port = self.ports['PUBP']
         self.topic = topic
+        self.sub_id = random.randrange(0, 9999)
         self.broker_path = "/broker"
-        self.path = f"/topic/{topic}/sub"
+        self.path_s = f"/topic/{topic}/sub"
+        self.path = f"/topic/{topic}/sub/{self.sub_id}"
         self.pub_path = f"/topic/{topic}/pub"
         self.ip = get_ip()
         self.socket = context.socket(zmq.SUB)
         self.zk = KazooClient(hosts=zkserver)
         self.zk.start()
 
+        if not self.zk.exists(self.path_s):
+            self.zk.create(self.path_s)
+
         print(f"Subscriber: creating znode {self.path}:{self.ip}")
         self.zk.create(self.path, value=self.ip.encode(
             'utf-8'), ephemeral=True)
 
     def connect(self):
+
         print(f"Subscriber: {self.ip}")
         @self.zk.DataWatch(self.broker_path)
         def broker_watcher(data, stat):
@@ -167,16 +188,46 @@ class Subscriber():
 
         self.socket.setsockopt_string(zmq.SUBSCRIBE, self.topic)
 
-    def connect_direct(self):
-        @self.zk.DataWatch(self.pub_path)
-        def pub_watcher(data, stat):
-            if data is not None:
-                new_ip = data.decode('utf-8')
-                conn_str = f'tcp://{new_ip}:{self.port}'
-                print(f"connecting: {conn_str}")
-                self.socket.connect(conn_str)
+    # def connect_direct(self):
+    #     @self.zk.DataWatch(self.pub_path)
+    #     def pub_watcher(data, stat):
+    #         if data is not None:
+    #             new_ip = data.decode('utf-8')
+    #             conn_str = f'tcp://{new_ip}:{self.port}'
+    #             print(f"connecting: {conn_str}")
+    #             self.socket.connect(conn_str)
+    #
+    #     self.socket.setsockopt_string(zmq.SUBSCRIBE, self.topic)
 
-        self.socket.setsockopt_string(zmq.SUBSCRIBE, self.topic)
+    def connect_direct(self):
+        chilren = self.zk.get_children(self.pub_path, False)
+        for child in chilren:
+            print(child)
+            new_path = f"/topic/{self.topic}/pub/{child}"
+            print(new_path)
+            @self.zk.DataWatch(new_path)
+            def children_watcher(data, stat):
+                if data is not None:
+                    new_ip = data.decode('utf-8')
+                    conn_str = f'tcp://{new_ip}:{self.port}'
+                    print(f"connecting: {conn_str}")
+                    self.socket.connect(conn_str)
+
+            self.socket.setsockopt_string(zmq.SUBSCRIBE, self.topic)
+
+        # # @self.zk.PersistentWatcher(self.pub_path)
+        # @self.zk.ChildrenWatch(self.pub_path)
+        # def children_watcher(data, stat):
+        #     for child in chilren:
+        #         value, stat2 = self.zk.get(child)
+        #         if value is not None:
+        #             new_ip = value.decode('utf-8')
+        #             conn_str = f'tcp://{new_ip}:{self.port}'
+        #             print(f"connecting: {conn_str}")
+        #             self.socket.connect(conn_str)
+        #
+        #
+        # self.socket.setsockopt_string(zmq.SUBSCRIBE, self.topic)
 
 
     def listen(self):

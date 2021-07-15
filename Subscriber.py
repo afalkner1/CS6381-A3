@@ -4,7 +4,7 @@ from CS6381 import Subscriber
 
 
 s = Subscriber(sys.argv[1])
-s.connect()
+s.connect_direct()
 
 while True:
     rec_time = time.time()
