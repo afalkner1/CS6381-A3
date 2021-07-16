@@ -1,23 +1,11 @@
 import zmq
-from zmq.utils.monitor import recv_monitor_message
-import threading
 import time
 import random
-import matplotlib.pyplot as plt
 import netifaces as ni
 from kazoo.client import KazooClient
-from kazoo.client import KazooState
-from kazoo.exceptions import (
-    ConnectionClosedError,
-    NoNodeError,
-    KazooException
-)
 import configparser
 import uuid
-import socket
-import fcntl
-import struct
-import os
+
 
 context = zmq.Context()
 zkserver = "10.0.0.1:2181"

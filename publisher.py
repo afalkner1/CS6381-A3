@@ -1,9 +1,7 @@
 import sys
 from random import randrange
-import argparse
 from CS6381 import Publisher
 import time
-import uuid
 import random
 
 topic = sys.argv[1]
