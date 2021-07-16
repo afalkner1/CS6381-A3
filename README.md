@@ -97,10 +97,10 @@ Wait and few seconds and then you will see new broker elected
 
 ## Tests and Graphs
 
-Graph to show message times as hosts increased using approach one. 
+Graph to show message times as hosts increase using approach one. 
 ![data](/images/broker.png)
 
-Graph to show message times as hosts increased using approach two. 
+Graph to show message times as hosts increase using approach two. 
 ![data](/images/direct.png)
 
 Comparing this data 
