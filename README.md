@@ -107,4 +107,12 @@ Graph to show message times as hosts increase using approach two.
 Comparing this data 
 ![data](/images/both.png)
 
+## Responsibilities 
+
+We met over Zoom to plan out our project and implementation. Then, both developed the code independently and would Zoom periodically to discuss what changes we had made. 
+
+All changes were commited through Alex's github account but we shared and both made edits. 
+
+Alex then commented, and tested the code, creating the graphs.
+
 
