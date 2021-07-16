@@ -1,7 +1,7 @@
 # CS6381-A2
 
 This project is a pub-sub model with a broker. Zookeeper is used for broker leader election. 
-File CS6381.py contains all the Zookeeper and ZeroMQ middleware. 
+Files broker.py, Subscriber.py and publisher.py run all the Zookeeper and ZeroMQ middleware in CS6381.py. 
 
 ## How this project works
 
@@ -38,6 +38,7 @@ Note: Zookeeper must be started in host 1.
 
 ### Host 2
 Run first broker
+Note: There might be a warning flag, you can ignore this or export NO_AT_BRIDGE=1
 ```
 > cd <my CS6381-A2 file>
 > python3 broker.py
