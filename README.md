@@ -10,9 +10,11 @@ A broker wins the Zookeeper election and creates and ephemeral znode at the loca
 There are two approaches to recieve messagess. 
 
 1) Broker
+
 In this method messages are sent from the publisher, to the broker, who then forwards the messages onto the subscribers 
 
 2) Direct 
+
 In this method messages are sent directly from the publishers to the subscribers. 
 
 
