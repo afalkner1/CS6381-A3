@@ -1,6 +1,8 @@
 from CS6381 import *
 import threading
 
+# To run this file on line 223 and 237 of CS6381.py delete the value "extra2"
+
 if __name__ == "__main__":
     b = Broker()
     t1 = threading.Thread(target=b.connect_broker)
