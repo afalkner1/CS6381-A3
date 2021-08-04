@@ -12,7 +12,8 @@ import json
 context = zmq.Context()
 zkserver = "10.0.0.1:2181"
 socket_arr = []
-topics = {}
+# keep track of history for each topic
+topics = {"weather": 2, "zipcode": 5, "hats":3}
 zone_list =[1, 2, 3]
 
 class Broker():
@@ -55,7 +56,6 @@ class Broker():
                     self.zk.create(self.path, value=self.ip.encode(
                         'utf-8'), ephemeral=True)
 
-
             # Connect Broker
             print("This is broker: creating xsub and xpubsockets")
             xsubsocket = context.socket(zmq.XSUB)
@@ -68,15 +68,17 @@ class Broker():
             zmq.proxy(xsubsocket, xpubsocket)
 
 class Publisher:
-    def __init__(self, topic = 8):
+    def __init__(self, topic = "weather"):
         config = configparser.ConfigParser()
         config.read('config.ini')
         self.ports = config['PORT']
         # unique id to every publisher
         self.id = uuid.uuid4()
         self.publisher_id = random.randrange(0, 9999)
-        self.topic = topic;
-        self.zone = 0;
+
+        self.history = topics[topic]
+        self.topic = topic
+        self.zone = 0
         self.topic_path = f"/{self.topic}"
 
         self.zk = KazooClient(hosts=zkserver)
@@ -97,7 +99,6 @@ class Publisher:
                 self.zone = num
 
         print(f"Publisher is in zone: {self.zone}")
-        print(topics)
 
         self.path_zone =f"/{self.zone}"
         self.path_test = f"/{self.zone}/topic"
@@ -107,6 +108,49 @@ class Publisher:
         self.broker_path = f"/{self.zone}/broker"
         self.ip = get_ip()
         self.socket = context.socket(zmq.PUB)
+
+        self.election_path = f"/{self.zone}/topic/{topic}/pub_election"
+
+    def connect1(self):
+
+        if not self.zk.exists(self.path_test):
+            self.zk.create(self.path_test)
+
+        if not self.zk.exists(self.path_test2):
+            self.zk.create(self.path_test2)
+
+        if not self.zk.exists(self.election_path):
+            self.zk.create(self.election_path)
+
+        print("Waiting for publisher with highest ownership strength")
+        election = self.zk.Election(self.election_path, self.ip)
+        election.run(self.leader_elected)
+
+    def leader_elected(self):
+        print("Leader Pub is now Elected")
+        print("Leader Pub now connecting")
+
+        @self.zk.DataWatch(self.path_b)
+        def pub_watcher(data, stat):
+            print(("Broker::broker_watcher - data = {}, stat = {}".format(data, stat)))
+            if data is None:
+                if not self.zk.exists(self.path_b):
+                    self.zk.create(self.path_b, value=self.ip.encode(
+                        'utf-8'), ephemeral=True)
+
+            # Connect Publisher
+            @self.zk.DataWatch(self.broker_path)
+            def broker_watcher(data, stat):
+                print(("Publisher::broker_watcher - data = {}, stat = {}".format(data, stat)))
+                if data is not None:
+                    new_ip = data.decode('utf-8')
+                    self.port = self.ports['SUBP']
+                    conn_str = f'tcp://{new_ip}:{self.port}'
+                    print(f"Publisher connecting to broker at ip: {new_ip} port: {self.port}")
+                    self.socket.connect(conn_str)
+
+            self.run_pub()
+
 
 
     def connect(self):
