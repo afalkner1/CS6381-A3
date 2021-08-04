@@ -16,6 +16,6 @@ from kazoo.exceptions import (
 from math import ceil
 import json
 
-context = zmq.Context()
-db_data = {}
+class LoadHelper:
+
 

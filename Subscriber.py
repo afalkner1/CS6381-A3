@@ -2,8 +2,8 @@ import sys
 import time
 from CS6381 import *
 
-
-s = Subscriber(sys.argv[1])
+hist = sys.argv[3]
+s = Subscriber(sys.argv[1], hist)
 
 if (sys.argv[2] == "direct"):
     s.connect_direct()

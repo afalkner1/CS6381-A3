@@ -6,7 +6,7 @@ import random
 
 topic = sys.argv[1]
 hist = sys.argv[3]
-p = Publisher(topic)
+p = Publisher(topic, hist)
 if (sys.argv[2] == "direct"):
     p.connect1()
     print("running pub")

@@ -13,8 +13,9 @@ context = zmq.Context()
 zkserver = "10.0.0.1:2181"
 socket_arr = []
 zone_list =[1, 2, 3]
+ZONE_THRESHOLD = 2
 
-topics ={"weather": 3, "golf": 3, "hats": 3}
+topics ={"weather": 3, "golf": 3, "hats": 3, "test": 3}
 
 class Broker():
     def __init__(self,zone):
@@ -66,10 +67,11 @@ class Broker():
 
             zmq.proxy(xsubsocket, xpubsocket)
 
+
 class Publisher:
     def __init__(self, topic = "weather",hist = 3):
-        self.history = hist
-        self.window = ["0","0","0"]
+        self.history = int(hist)
+        self.window = ["0 0","0 0","0 0"]
         self.count = 0
         self.index = ""
 
@@ -88,23 +90,43 @@ class Publisher:
         self.zk = KazooClient(hosts=zkserver)
         self.zk.start()
 
+
+        # Round Robin load balancing
+
+        # If topic doesn't exist randomly assign to zone
+        # Make sure zone is not full
+
         if not self.zk.exists(self.topic_path):
             self.zk.create(self.topic_path)
+            num = random.choice(range(0, 2))
+            if not self.zk.exists(f"/{num}/topic"):
+                self.zk.create(f"/{num}/topic")
 
-        if self.zk.exists(self.topic_path):
-            if self.zk.exists(f"/{self.topic}/1"):
-                self.zone = 1
-            elif self.zk.exists(f"/{self.topic}/2"):
-                self.zone = 2
-            else :
-                # load balancing with round-robin
-                num = random.choice(range(1, 3))
-                self.zk.create(f"/{self.topic}/{num}")
+            children = self.zk.get_children(f"/{num}/topic", False)
+            print("children:")
+            print(children)
+            if len(children) > ZONE_THRESHOLD -1:
+                print("---------------------")
+                print(f"TOO MANY TOPICS in zone {num}")
+                print("Adding topic to other zone")
+                print("---------------------")
+                self.zone = (num + 1) % 2
+                if not self.zk.exists(f"/{self.zone}/topic"):
+                    self.zk.create(f"/{self.zone}/topic")
+            else:
                 self.zone = num
+            self.zk.create(f"/{self.topic}/{self.zone}")
+        # if the topic has already been created
+        else:
+            if self.zk.exists(f"/{self.topic}/0"):
+                self.zone = 0
+            else:
+                self.zone = 1
 
         print(f"Publisher is in zone: {self.zone}")
 
-        self.path_zone =f"/{self.zone}"
+        self.election_path = f"/{self.zone}/topic/{topic}/pub_election"
+        self.path_zone = f"/{self.zone}"
         self.path_test = f"/{self.zone}/topic"
         self.path_test2 = f"/{self.zone}/topic/{topic}"
         self.path_b = f"/{self.zone}/topic/{topic}/pub"
@@ -113,9 +135,15 @@ class Publisher:
         self.ip = get_ip()
         self.socket = context.socket(zmq.PUB)
 
-        self.election_path = f"/{self.zone}/topic/{topic}/pub_election"
-
     def connect1(self):
+
+        # if not self.zk.exists(self.path_test):
+        #     self.zk.create(self.path_test)
+        # children = self.zk.get_children(self.path_test, False)
+        # print("children:")
+        # print(children)
+        # for child in children:
+        #     print("new child")
 
         if not self.zk.exists(self.path_test):
             self.zk.create(self.path_test)
@@ -125,6 +153,8 @@ class Publisher:
 
         if not self.zk.exists(self.election_path):
             self.zk.create(self.election_path)
+
+        self.set_broker_watch()
 
         print("Waiting for publisher with highest ownership strength")
         election = self.zk.Election(self.election_path, self.ip)
@@ -142,18 +172,19 @@ class Publisher:
                     self.zk.create(self.path_b, value=self.ip.encode(
                         'utf-8'), ephemeral=True)
 
-            # Connect Publisher
-            @self.zk.DataWatch(self.broker_path)
-            def broker_watcher(data, stat):
-                print(("Publisher::broker_watcher - data = {}, stat = {}".format(data, stat)))
-                if data is not None:
-                    new_ip = data.decode('utf-8')
-                    self.port = self.ports['SUBP']
-                    conn_str = f'tcp://{new_ip}:{self.port}'
-                    print(f"Publisher connecting to broker at ip: {new_ip} port: {self.port}")
-                    self.socket.connect(conn_str)
+        self.run_pub()
 
-            self.run_pub()
+    def set_broker_watch(self):
+        # Connect Publisher
+        @self.zk.DataWatch(self.broker_path)
+        def broker_watcher(data, stat):
+            print(("Publisher::broker_watcher - data = {}, stat = {}".format(data, stat)))
+            if data is not None:
+                new_ip = data.decode('utf-8')
+                self.port = self.ports['SUBP']
+                conn_str = f'tcp://{new_ip}:{self.port}'
+                print(f"Publisher connecting to broker at ip: {new_ip} port: {self.port}")
+                self.socket.connect(conn_str)
 
     def connect(self):
 
@@ -214,10 +245,10 @@ class Publisher:
             while self.count < self.history:
                 publisher_id = self.publisher_id
                 sent_time = time.time()
-                blah = random.randrange(0, 50)
+                blah = random.randrange(1, 50)
                 msg = f'{publisher_id} {blah}'
                 self.window[self.count] = msg
-                self.index = ","
+                self.index = f", {self.history},"
                 for w in self.window:
                     self.index = self.index+ " "+ w
                 self.index = self.index + ", "
@@ -230,7 +261,7 @@ class Publisher:
 class Subscriber():
 
     def __init__(self, topic = 8, hist = 3):
-        self.history = 3
+        self.history = int(hist)
         config = configparser.ConfigParser()
         config.read('config.ini')
         self.ports = config['PORT']
@@ -243,10 +274,10 @@ class Subscriber():
         self.zk.start()
 
         # check for correct zone
-        if self.zk.exists(f"/{self.topic}/1"):
-            self.zone = 1
+        if self.zk.exists(f"/{self.topic}/0"):
+            self.zone = 0
         else:
-            self.zone = 2
+            self.zone = 1
 
 
         print(f"Subscriber is in zone: {self.zone}")
@@ -312,23 +343,35 @@ class Subscriber():
             rec_time = time.time()
             f = open("times.txt", "a")
             message = self.listen()
-            print(message)
-            # extra, pub_id, topic, sent_time = message.split()
+            # extra, extra2, topic, sub_history,msg = message.split()
+            # print(f"{topic} {sub_history} {msg}")
             x = message.split(", ")
-            ha = x[1].split(" ")
-            print(ha)
-            count = 1
-            i = 0
-            if self.history > len(ha)/2:
-                print("broke")
-                break
-            while i < self.history:
-                word = word + " " + ha[count]
-                i = i +1
-                count = count + 2
+            sub_history = x[1]
+            ha = x[2].split(" ")
 
+            first = False
+            n = 0
+            for thing in ha:
+                if thing == '0':
+                    n = n + 2
+                    first = True
+                else:
+                    n = n + 1
+
+            if self.history > n/2:
+                print("History too high. Subscriber did not meet match conditions. ")
+                break
+
+            i = 0
             print("Subscriber recieved message: ")
-            print(f"{x[0]}{ha[0]}{word}")
+            while i < self.history *2:
+                if (i%2 == 0):
+                    word = word + f" {self.topic} " + ha[i]
+                else:
+                    word = word + " " + ha[i]
+                i = i +1
+
+            print(f"{word}")
 
             # print(pub_id, topic, sent_time)
             print("\n")
