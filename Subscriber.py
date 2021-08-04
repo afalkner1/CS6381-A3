@@ -4,6 +4,7 @@ from CS6381 import *
 
 
 s = Subscriber(sys.argv[1])
+
 if (sys.argv[2] == "direct"):
     s.connect_direct()
     s.run_sub_direct()

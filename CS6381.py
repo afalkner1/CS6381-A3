@@ -12,9 +12,9 @@ import json
 context = zmq.Context()
 zkserver = "10.0.0.1:2181"
 socket_arr = []
-# keep track of history for each topic
-topics = {"weather": 2, "zipcode": 5, "hats":3}
 zone_list =[1, 2, 3]
+
+topics ={"weather": 3, "golf": 3, "hats": 3}
 
 class Broker():
     def __init__(self,zone):
@@ -47,7 +47,6 @@ class Broker():
         print("Leader is now Elected")
         print("Leader broker now connecting to subs and pubs")
 
-
         @self.zk.DataWatch(self.path)
         def broker_watcher(data, stat):
             print(("Broker::broker_watcher - data = {}, stat = {}".format(data, stat)))
@@ -68,15 +67,20 @@ class Broker():
             zmq.proxy(xsubsocket, xpubsocket)
 
 class Publisher:
-    def __init__(self, topic = "weather"):
+    def __init__(self, topic = "weather",hist = 3):
+        self.history = hist
+        self.window = ["0","0","0"]
+        self.count = 0
+        self.index = ""
+
         config = configparser.ConfigParser()
         config.read('config.ini')
         self.ports = config['PORT']
         # unique id to every publisher
         self.id = uuid.uuid4()
         self.publisher_id = random.randrange(0, 9999)
+        print(f"Pub id: {self.publisher_id}")
 
-        self.history = topics[topic]
         self.topic = topic
         self.zone = 0
         self.topic_path = f"/{self.topic}"
@@ -127,7 +131,7 @@ class Publisher:
         election.run(self.leader_elected)
 
     def leader_elected(self):
-        print("Leader Pub is now Elected")
+        print("Publishers with highest leadership strength chosen")
         print("Leader Pub now connecting")
 
         @self.zk.DataWatch(self.path_b)
@@ -150,8 +154,6 @@ class Publisher:
                     self.socket.connect(conn_str)
 
             self.run_pub()
-
-
 
     def connect(self):
 
@@ -203,23 +205,32 @@ class Publisher:
         self.socket.bind("tcp://*:5556")
 
     def publish(self, topic, messagedata):
-        self.socket.send_string(f'{topic} {messagedata}')
+        self.socket.send_string(f"{topic}{messagedata}")
 
     def run_pub(self):
+
         while True:
-            publisher_id = self.publisher_id
-            sent_time = time.time()
-            msg = f'{publisher_id} {self.topic} {sent_time}'
-            self.publish(self.topic, msg)
-            print(publisher_id, self.topic, sent_time)
-            time.sleep(1)
+            self.count = 0;
+            while self.count < self.history:
+                publisher_id = self.publisher_id
+                sent_time = time.time()
+                blah = random.randrange(0, 50)
+                msg = f'{publisher_id} {blah}'
+                self.window[self.count] = msg
+                self.index = ","
+                for w in self.window:
+                    self.index = self.index+ " "+ w
+                self.index = self.index + ", "
+                self.publish(self.topic, self.index)
+                print(f"sent: {self.index}")
+                self.count = self.count + 1
+                time.sleep(1)
 
 
 class Subscriber():
 
-    def __init__(self, topic = 8):
-
-        print(topics)
+    def __init__(self, topic = 8, hist = 3):
+        self.history = 3
         config = configparser.ConfigParser()
         config.read('config.ini')
         self.ports = config['PORT']
@@ -257,7 +268,6 @@ class Subscriber():
             'utf-8'), ephemeral=True)
 
     def connect(self):
-
         print(f"Subscriber: {self.ip}")
         @self.zk.DataWatch(self.broker_path)
         def broker_watcher(data, stat):
@@ -298,14 +308,31 @@ class Subscriber():
 
     def run_sub(self):
         while True:
+            word = ""
             rec_time = time.time()
             f = open("times.txt", "a")
             message = self.listen()
-            extra, pub_id, extra2, topic, sent_time = message.split()
+            print(message)
+            # extra, pub_id, topic, sent_time = message.split()
+            x = message.split(", ")
+            ha = x[1].split(" ")
+            print(ha)
+            count = 1
+            i = 0
+            if self.history > len(ha)/2:
+                print("broke")
+                break
+            while i < self.history:
+                word = word + " " + ha[count]
+                i = i +1
+                count = count + 2
+
             print("Subscriber recieved message: ")
-            print(pub_id, topic, sent_time)
+            print(f"{x[0]}{ha[0]}{word}")
+
+            # print(pub_id, topic, sent_time)
             print("\n")
-            f.write(f"{pub_id} , {sent_time} , {rec_time} \n")
+            # f.write(f"{pub_id} , {sent_time} , {rec_time} \n")
             f.close()
             time.sleep(1)
 

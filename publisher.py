@@ -5,6 +5,7 @@ import time
 import random
 
 topic = sys.argv[1]
+hist = sys.argv[3]
 p = Publisher(topic)
 if (sys.argv[2] == "direct"):
     p.connect1()
