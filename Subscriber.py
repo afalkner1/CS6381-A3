@@ -10,7 +10,8 @@ if (sys.argv[2] == "direct"):
 else:
     s.connect()
     s.run_sub()
-#
+
+
 # while True:
 #     rec_time = time.time()
 #     f = open("times.txt", "a")

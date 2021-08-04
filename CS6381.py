@@ -6,13 +6,18 @@ from kazoo.client import KazooClient
 import configparser
 import uuid
 
+from math import ceil
+import json
 
 context = zmq.Context()
 zkserver = "10.0.0.1:2181"
 socket_arr = []
+topics = {}
+zone_list =[1, 2, 3]
 
 class Broker():
-    def __init__(self):
+    def __init__(self,zone):
+        self.zone = zone
         self.id = uuid.uuid4()
         config = configparser.ConfigParser()
         config.read('config.ini')
@@ -20,11 +25,15 @@ class Broker():
         self.ip = get_ip()
         self.zk = KazooClient(hosts=zkserver)
         self.zk.start()
-        self.path = "/broker"
-        self.election_path = "/broker-election"
+        self.path_zone = f"/{self.zone}"
+        self.path = f"/{self.zone}/broker"
+        self.election_path = f"/{self.zone}/broker-election"
 
     def connect_broker(self):
         print(f"Broker: {self.ip}")
+
+        if not self.zk.exists(self.path_zone):
+            self.zk.create(self.path_zone)
 
         if not self.zk.exists(self.election_path):
             self.zk.create(self.election_path)
@@ -67,19 +76,43 @@ class Publisher:
         self.id = uuid.uuid4()
         self.publisher_id = random.randrange(0, 9999)
         self.topic = topic;
-        self.path_test = f"/topic"
-        self.path_test2 = f"/topic/{topic}"
-        self.path_b = f"/topic/{topic}/pub"
-        self.path = f"/topic/{topic}/pub/{self.publisher_id}"
-        self.broker_path = "/broker"
+        self.zone = 0;
+        self.topic_path = f"/{self.topic}"
 
-        self.ip = get_ip()
-        self.socket = context.socket(zmq.PUB)
         self.zk = KazooClient(hosts=zkserver)
         self.zk.start()
 
+        if not self.zk.exists(self.topic_path):
+            self.zk.create(self.topic_path)
+
+        if self.zk.exists(self.topic_path):
+            if self.zk.exists(f"/{self.topic}/1"):
+                self.zone = 1
+            elif self.zk.exists(f"/{self.topic}/2"):
+                self.zone = 2
+            else :
+                # load balancing with round-robin
+                num = random.choice(range(1, 3))
+                self.zk.create(f"/{self.topic}/{num}")
+                self.zone = num
+
+        print(f"Publisher is in zone: {self.zone}")
+        print(topics)
+
+        self.path_zone =f"/{self.zone}"
+        self.path_test = f"/{self.zone}/topic"
+        self.path_test2 = f"/{self.zone}/topic/{topic}"
+        self.path_b = f"/{self.zone}/topic/{topic}/pub"
+        self.path = f"/{self.zone}/topic/{topic}/pub/{self.publisher_id}"
+        self.broker_path = f"/{self.zone}/broker"
+        self.ip = get_ip()
+        self.socket = context.socket(zmq.PUB)
+
 
     def connect(self):
+
+        if not self.zk.exists(self.path_zone):
+            self.zk.create(self.path_zone)
 
         if not self.zk.exists(self.path_test):
             self.zk.create(self.path_test)
@@ -141,20 +174,36 @@ class Publisher:
 class Subscriber():
 
     def __init__(self, topic = 8):
+
+        print(topics)
         config = configparser.ConfigParser()
         config.read('config.ini')
         self.ports = config['PORT']
         self.port = self.ports['PUBP']
         self.topic = topic
         self.sub_id = random.randrange(0, 9999)
-        self.broker_path = "/broker"
-        self.path_s = f"/topic/{topic}/sub"
-        self.path = f"/topic/{topic}/sub/{self.sub_id}"
-        self.pub_path = f"/topic/{topic}/pub"
-        self.ip = get_ip()
-        self.socket = context.socket(zmq.SUB)
+        self.zone = 0
+
         self.zk = KazooClient(hosts=zkserver)
         self.zk.start()
+
+        # check for correct zone
+        if self.zk.exists(f"/{self.topic}/1"):
+            self.zone = 1
+        else:
+            self.zone = 2
+
+
+        print(f"Subscriber is in zone: {self.zone}")
+
+        self.path_zone = f"/{self.zone}"
+        self.broker_path = f"/{self.zone}/broker"
+        self.path_s = f"/{self.zone}/topic/{topic}/sub"
+        self.path = f"/{self.zone}/topic/{topic}/sub/{self.sub_id}"
+        self.pub_path = f"/{self.zone}/topic/{topic}/pub"
+        self.ip = get_ip()
+        self.socket = context.socket(zmq.SUB)
+
 
         if not self.zk.exists(self.path_s):
             self.zk.create(self.path_s)
