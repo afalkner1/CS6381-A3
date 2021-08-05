@@ -9,8 +9,6 @@ hist = sys.argv[3]
 p = Publisher(topic, hist)
 if (sys.argv[2] == "direct"):
     p.connect1()
-    print("running pub")
-    p.run_pub()
 else :
     p.connect1()
 

@@ -14,20 +14,10 @@ class topic():
 
 
     def run(self):
-        while True:
-            self.count = 0;
-            while self.count < self.history:
-                blah = random.randrange(0, 50)
-                print(f"blah: {blah}")
-                msg = f'{blah}'
-                self.window[self.count] = msg
-                self.index = "["
-                for w in self.window:
-                    self.index = self.index + " " + w
-                self.index = self.index + " ]"
-                print(self.index)
-                self.count = self.count + 1
-                time.sleep(1)
+        rec_time = time.time()
+        time1 = 1626388858.77716
+        dif = rec_time - time1
+        print(dif)
 
 
 if __name__ == "__main__":

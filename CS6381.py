@@ -6,9 +6,6 @@ from kazoo.client import KazooClient
 import configparser
 import uuid
 
-from math import ceil
-import json
-
 context = zmq.Context()
 zkserver = "10.0.0.1:2181"
 socket_arr = []
@@ -160,6 +157,20 @@ class Publisher:
         election = self.zk.Election(self.election_path, self.ip)
         election.run(self.leader_elected)
 
+    def connect2(self):
+        if not self.zk.exists(self.path_test):
+            self.zk.create(self.path_test)
+
+        if not self.zk.exists(self.path_test2):
+            self.zk.create(self.path_test2)
+
+        if not self.zk.exists(self.election_path):
+            self.zk.create(self.election_path)
+
+        print("Waiting for publisher with highest ownership strength")
+        election = self.zk.Election(self.election_path, self.ip)
+        election.run(self.leader_elected)
+
     def leader_elected(self):
         print("Publishers with highest leadership strength chosen")
         print("Leader Pub now connecting")
@@ -171,6 +182,11 @@ class Publisher:
                 if not self.zk.exists(self.path_b):
                     self.zk.create(self.path_b, value=self.ip.encode(
                         'utf-8'), ephemeral=True)
+
+            self.port = self.ports['SUBP']
+            conn_str = f'tcp://{self.ip}:{self.port}'
+            print(f"binding: {conn_str}")
+            self.socket.bind("tcp://*:5556")
 
         self.run_pub()
 
@@ -301,6 +317,20 @@ class Subscriber():
     def connect(self):
         print(f"Subscriber: {self.ip}")
         @self.zk.DataWatch(self.broker_path)
+        def broker_watcher(data, stat):
+            print(("Sub::broker_watcher - data = {}, stat = {}".format(data, stat)))
+            if data is not None:
+                new_ip=data.decode('utf-8')
+                conn_str = f'tcp://{new_ip}:{self.port}'
+                print(f"connecting: {conn_str}")
+                self.socket.connect(conn_str)
+
+        self.socket.setsockopt_string(zmq.SUBSCRIBE, self.topic)
+
+    def connect1(self):
+        print(f"Subscriber: {self.ip}")
+
+        @self.zk.DataWatch(f"/{self.zone}/topic/{self.topic}/pub")
         def broker_watcher(data, stat):
             print(("Sub::broker_watcher - data = {}, stat = {}".format(data, stat)))
             if data is not None:

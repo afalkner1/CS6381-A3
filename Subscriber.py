@@ -6,8 +6,8 @@ hist = sys.argv[3]
 s = Subscriber(sys.argv[1], hist)
 
 if (sys.argv[2] == "direct"):
-    s.connect_direct()
-    s.run_sub_direct()
+    s.connect1()
+    s.run_sub()
 else:
     s.connect()
     s.run_sub()
