@@ -14,10 +14,8 @@ class topic():
 
 
     def run(self):
-        rec_time = time.time()
-        time1 = 1626388858.77716
-        dif = rec_time - time1
-        print(dif)
+        None
+
 
 
 if __name__ == "__main__":

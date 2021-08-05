@@ -21,7 +21,7 @@ In this method messages are sent directly from the publishers to the subscribers
 
 ## Please refer to the video below to see tests 
 
-https://www.youtube.com/watch?v=Tqswv4DCiaM
+https://www.youtube.com/watch?v=7kZp_XuEMnc
 
 ## To run on mininet 
 First create a topology of hosts

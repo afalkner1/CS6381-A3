@@ -403,9 +403,8 @@ class Subscriber():
 
             print(f"{word}")
 
-            # print(pub_id, topic, sent_time)
             print("\n")
-            # f.write(f"{pub_id} , {sent_time} , {rec_time} \n")
+            # f.write(f"{sent_time} , {rec_time} \n")
             f.close()
             time.sleep(1)
 

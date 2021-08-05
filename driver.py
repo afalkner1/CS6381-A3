@@ -4,78 +4,81 @@ import threading
 # To run this file on line 223 and 237 of CS6381.py delete the value "extra2"
 
 if __name__ == "__main__":
-    b = Broker()
+    b = Broker(0)
     t1 = threading.Thread(target=b.connect_broker)
 
+    b2 = Broker(1)
+    t18 = threading.Thread(target=b.connect_broker)
+
     time.sleep(1)
-    p = Publisher("Weather")
-    p.connect_direct()
+    p = Publisher("Weather", 3)
+    p.connect1()
 
     t2 = threading.Thread(target=p.run_pub)
 
-    s = Subscriber("Weather")
-    s.connect_direct()
+    s = Subscriber("Weather", 3)
+    s.connect()
 
-    s2 = Subscriber("Weather")
-    s2.connect_direct()
+    s2 = Subscriber("Weather", 3)
+    s2.connect()
 
-    s3 = Subscriber("Weather")
-    s3.connect_direct()
+    s3 = Subscriber("Weather", 3)
+    s3.connect()
 
-    s4 = Subscriber("Weather")
-    s4.connect_direct()
+    s4 = Subscriber("Weather", 3)
+    s4.connect()
 
-    s5 = Subscriber("Weather")
-    s5.connect_direct()
+    s5 = Subscriber("Weather", 3)
+    s5.connect()
 
-    s6 = Subscriber("Weather")
-    s6.connect_direct()
+    s6 = Subscriber("Weather", 3)
+    s6.connect()
 
-    s7 = Subscriber("Weather")
-    s7.connect_direct()
+    s7 = Subscriber("Weather",3)
+    s7.connect()
 
-    s8 = Subscriber("Weather")
-    s8.connect_direct()
+    s8 = Subscriber("Weather", 3)
+    s8.connect()
 
-    s9 = Subscriber("Weather")
-    s9.connect_direct()
+    s9 = Subscriber("Weather", 3)
+    s9.connect()
 
-    s10 = Subscriber("Weather")
-    s10.connect_direct()
+    s10 = Subscriber("Weather", 3)
+    s10.connect()
 
-    s11 = Subscriber("Weather")
-    s11.connect_direct()
+    s11 = Subscriber("Weather", 3)
+    s11.connect()
 
-    s12 = Subscriber("Weather")
-    s12.connect_direct()
+    s12 = Subscriber("Weather", 3)
+    s12.connect()
 
-    s13 = Subscriber("Weather")
-    s13.connect_direct()
+    s13 = Subscriber("Weather", 3)
+    s13.connect()
 
-    s14 = Subscriber("Weather")
-    s14.connect_direct()
+    s14 = Subscriber("Weather", 3)
+    s14.connect()
 
-    s15 = Subscriber("Weather")
-    s15.connect_direct()
+    s15 = Subscriber("Weather", 3)
+    s15.connect()
 
-    t3 = threading.Thread(target=s.run_sub_direct)
-    t4 = threading.Thread(target=s2.run_sub_direct)
-    t5 = threading.Thread(target=s3.run_sub_direct)
-    t6 = threading.Thread(target=s4.run_sub_direct)
+    t3 = threading.Thread(target=s.run_sub)
+    t4 = threading.Thread(target=s2.run_sub)
+    t5 = threading.Thread(target=s3.run_sub)
+    t6 = threading.Thread(target=s4.run_sub)
 
-    t7 = threading.Thread(target=s5.run_sub_direct)
-    t8 = threading.Thread(target=s6.run_sub_direct)
-    t9 = threading.Thread(target=s7.run_sub_direct)
-    t10 = threading.Thread(target=s8.run_sub_direct)
+    t7 = threading.Thread(target=s5.run_sub)
+    t8 = threading.Thread(target=s6.run_sub)
+    t9 = threading.Thread(target=s7.run_sub)
+    t10 = threading.Thread(target=s8.run_sub)
 
-    t11 = threading.Thread(target=s9.run_sub_direct)
-    t12 = threading.Thread(target=s10.run_sub_direct)
-    t13 = threading.Thread(target=s11.run_sub_direct)
-    t14 = threading.Thread(target=s12.run_sub_direct)
+    t11 = threading.Thread(target=s9.run_sub)
+    t12 = threading.Thread(target=s10.run_sub)
+    t13 = threading.Thread(target=s11.run_sub)
+    t14 = threading.Thread(target=s12.run_sub)
 
-    t15 = threading.Thread(target=s13.run_sub_direct)
-    t16 = threading.Thread(target=s14.run_sub_direct)
-    t17 = threading.Thread(target=s14.run_sub_direct)
+    t15 = threading.Thread(target=s13.run_sub)
+    t16 = threading.Thread(target=s14.run_sub)
+    t17 = threading.Thread(target=s14.run_sub)
 
     t1.setDaemon(True)
     t2.setDaemon(True)
